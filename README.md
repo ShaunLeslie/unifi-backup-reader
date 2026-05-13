@@ -4,6 +4,8 @@ A single-file browser tool that decodes UniFi Network (`.unf`) and UniFi OS cons
 
 Designed for the moment an engineer needs to recreate a config on a fresh controller, recover a lost Wi-Fi password from a backup, or just inspect what's actually saved in a UniFi backup file. Everything runs in your browser — no data ever leaves the page.
 
+**Try it now:** [ayetech.au/tools/unifibackupreader/](https://ayetech.au/tools/unifibackupreader/) — current build, hosted by AyeTech. Same single-file tool; your backup is still parsed entirely client-side. If you'd rather not trust a hosted copy, download `index.html` from this repo and open it directly.
+
 ## Features
 
 - **Reads both UniFi backup formats** — encrypted `.unf` (UniFi Network application) and `.unifi` (UniFi OS console wrapper). Drop a file, get a page.
@@ -22,10 +24,16 @@ Designed for the moment an engineer needs to recreate a config on a fresh contro
 
 ## Usage
 
-1. Download `index.html` (or open the hosted copy at your own URL — see *Deploy* below).
-2. Open it in any modern browser.
-3. Drag a `.unf` or `.unifi` file onto the drop zone, or click to pick.
-4. Browse the tabs, expand the sections, copy what you need.
+Two ways to run it:
+
+- **Hosted by AyeTech** — open [ayetech.au/tools/unifibackupreader/](https://ayetech.au/tools/unifibackupreader/) and skip step 1.
+- **Local file** — download `index.html` from this repo, double-click to open in your browser. No install, no server, no internet needed after the download.
+
+Either way:
+
+1. Open the page.
+2. Drag a `.unf` or `.unifi` file onto the drop zone, or click to pick.
+3. Browse the tabs, expand the sections, copy what you need.
 
 The tool never asks for a server, network connection, login, or permission. The first thing the browser does after loading the HTML is sit and wait for a file. The second thing it does — when you drop one — is parse it locally. There is no third thing.
 
