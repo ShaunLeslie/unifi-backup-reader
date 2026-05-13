@@ -22,3 +22,5 @@ node_modules/
 dist/
 build/
 *.log
+.wrangler/
+.dev.vars

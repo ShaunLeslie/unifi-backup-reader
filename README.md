@@ -27,6 +27,20 @@ Designed for the moment an engineer needs to recreate a config on a fresh contro
 3. Drag a `.unf` or `.unifi` file onto the drop zone, or click to pick.
 4. Browse the tabs, expand the sections, copy what you need.
 
+## Deploy your own copy
+
+Want it hosted on your own domain instead of opening a local file? One click puts a private copy on Cloudflare's edge, free, with no backend:
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ShaunLeslie/unifi-backup-reader)
+
+The repo ships a minimal `wrangler.jsonc` that serves `index.html` as a static asset — no build step, no secrets, no telemetry added. To deploy from your own machine instead:
+
+```bash
+npm i -g wrangler
+wrangler login
+wrangler deploy
+```
+
 Where to grab a backup:
 
 - **Cloud archive**: visit [account.ui.com/backups](https://account.ui.com/backups), open the console you want, download the latest backup (`.unifi`).
