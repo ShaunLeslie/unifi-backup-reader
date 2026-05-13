@@ -1,0 +1,24 @@
+# Never commit real UniFi backups — they contain credentials, fixed IPs, MAC inventories
+*.unf
+*.unifi
+*.unf.json
+unifi_os_backup_*
+
+# Claude Code / agent metadata
+.claude/
+.cursor/
+.aider*
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Local dev artefacts
+node_modules/
+dist/
+build/
+*.log
