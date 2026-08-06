@@ -6,6 +6,8 @@ Designed for the moment an engineer needs to recreate a config on a fresh contro
 
 **Try it now:** [ayetech.au/tools/unifibackupreader/](https://ayetech.au/tools/unifibackupreader/) — current build, hosted by AyeTech. Same single-file tool; your backup is still parsed entirely client-side. If you'd rather not trust a hosted copy, download `index.html` from this repo and open it directly.
 
+![UniFi Backup Reader — Overview tab of a decoded .unifi backup, showing at-a-glance counts and console metadata](docs/screenshots/01-overview.png)
+
 ## Features
 
 - **Reads both UniFi backup formats** — encrypted `.unf` (UniFi Network application) and `.unifi` (UniFi OS console wrapper). Drop a file, get a page.
@@ -21,6 +23,20 @@ Designed for the moment an engineer needs to recreate a config on a fresh contro
 - **Full JSON export** — entire backup as pretty-printed JSON, plus per-collection JSON copy/download.
 - **Fully offline, zero outbound requests** — single HTML file (~490 KB) with fflate, aes-js, and all webfonts bundled in. Open it on a plane, on an air-gapped jump host, wherever. Nothing is fetched at runtime.
 - **No telemetry** — your backup is parsed entirely in your tab. Nothing is uploaded.
+
+## Screenshots
+
+All captures below use a sanitised demo backup — names, MACs, serials and IPs are placeholder values, and every secret stays masked until you click to reveal it.
+
+| **Sites** — site cards with IDs and internal names | **Networks** — VLAN map, port forwards, LAN detail |
+|:--:|:--:|
+| ![Sites tab](docs/screenshots/02-sites.png) | ![Networks tab](docs/screenshots/03-networks.png) |
+| **Wi-Fi** — SSID/password matrix and per-SSID cards | **Devices** — identity, adoption info, Port Manager |
+| ![Wi-Fi tab](docs/screenshots/04-wifi.png) | ![Devices tab](docs/screenshots/05-devices.png) |
+| **Clients** — DHCP reservations and client detail | **Firewall** — zones, policies, rules, NAT |
+| ![Clients tab](docs/screenshots/06-clients.png) | ![Firewall tab](docs/screenshots/07-firewall.png) |
+| **Services** — RADIUS, scheduled tasks, DDNS, VPN | |
+| ![Services tab](docs/screenshots/08-services.png) | |
 
 ## Usage
 
