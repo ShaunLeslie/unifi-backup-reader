@@ -9,6 +9,7 @@ Designed for the moment an engineer needs to recreate a config on a fresh contro
 ## Features
 
 - **Reads both UniFi backup formats** — encrypted `.unf` (UniFi Network application) and `.unifi` (UniFi OS console wrapper). Drop a file, get a page.
+- **Old and new Network databases**: the legacy MongoDB BSON dump (`db.gz`) and the newer PostgreSQL export (`db-config.jsonl.gz`, `postgres_v1`) are both detected automatically and land in the same tabs. No conversion step. PostgreSQL support contributed by [phillipmcmahon](https://github.com/phillipmcmahon).
 - **Wi-Fi credentials matrix** — every SSID, password, security mode and VLAN binding. Click to reveal, click again to copy. Bulk TSV export.
 - **Networks-at-a-glance matrix** — every VLAN with subnet, gateway, DHCP range and DNS in one scannable table.
 - **DHCP reservations** — every fixed-IP client with MAC, IP, network and local-DNS record, one-click copy.
@@ -78,17 +79,22 @@ The pipeline from "binary file you dropped" to "settings page you can read" runs
 .unifi  →  AES-256-CBC decrypt (IV = first 16 bytes, key = embedded)
         →  gunzip
         →  tar extraction
-        →  picks `backup/network/db.gz` (the UniFi Network app's data)
+        →  picks the database under `backup/network/` (the UniFi Network app's data)
 
 .unf    →  AES-128-CBC decrypt (hardcoded key + IV)
         →  unzip
-        →  picks `db.gz`
+        →  picks `db.gz` or `db-config.jsonl.gz`
 
 db.gz   →  gunzip
         →  BSON stream parsed in two formats:
              • old mongodump archive (pre-10.x, magic 0x8199e26d)
              • new `__cmd: "select"` stream (UniFi Network 10.x+)
         →  collections grouped, rendered
+
+db-config.jsonl.gz
+        →  gunzip
+        →  PostgreSQL JSONL (`postgres_v1`): table headers + row arrays
+        →  tables and fields mapped to their BSON names, rendered
 ```
 
 ### Stage 1: Decrypt
@@ -104,8 +110,8 @@ The AES routines come from the bundled [aes-js](https://github.com/ricmoo/aes-js
 
 Decrypted output is a container, not data. Opening it differs by format:
 
-- **.unf** decrypts to a standard ZIP archive. The file we want is `db.gz`. Other entries (`db_stat.gz`, `version`, `format`, `timestamp`, `system.properties`) feed the file-info sidebar shown after a successful load.
-- **.unifi** decrypts to a gzipped TAR file (Unix tarball, gzipped). After ungzipping, the TAR is walked entry by entry. `backup/network/db.gz` is what becomes the Network tabs; the sibling folders (`backup/ucore/`, `backup/uos/`, `backup/users/`, `backup/innerspace/`) plus a few top-level JSON files describe the console hardware, paired UI.com devices, and installed apps — those populate the *Console* tab.
+- **.unf** decrypts to a standard ZIP archive. The file we want is `db.gz` on older Network releases, or `db-config.jsonl.gz` on newer PostgreSQL-based ones. Other entries (`db_stat.gz`, `version`, `format`, `timestamp`, `system.properties`) feed the file-info sidebar shown after a successful load.
+- **.unifi** decrypts to a gzipped TAR file (Unix tarball, gzipped). After ungzipping, the TAR is walked entry by entry. `backup/network/db.gz` (or `db-config.jsonl.gz` on PostgreSQL-based releases) is what becomes the Network tabs; the sibling folders (`backup/ucore/`, `backup/uos/`, `backup/users/`, `backup/innerspace/`) plus a few top-level JSON files describe the console hardware, paired UI.com devices, and installed apps, and those populate the *Console* tab.
 
 Gzip and ZIP handling come from the bundled [fflate](https://github.com/101arrowz/fflate). TAR extraction is implemented directly in `index.html` (TAR is a simple format — 512-byte headers with octal-encoded sizes, no compression of its own).
 
@@ -118,6 +124,18 @@ The inner `db.gz` ungzips to a MongoDB dump, but the wire format depends on when
 
 The BSON parser is hand-written for this project (no `bson` dependency). It walks the binary, decodes the primitive types UniFi actually uses (string, int32, int64, double, boolean, datetime, ObjectId, embedded document, array, binary), and skips anything else gracefully.
 
+### Stage 3b: Parse PostgreSQL JSONL
+
+Newer UniFi Network releases back up a PostgreSQL database instead of MongoDB. The backup's `format` file reads `postgres_v1` and the data lives in `db-config.jsonl.gz`. After gunzip it is plain JSON Lines:
+
+- A `{"_t": "table", "schema": ..., "table": ..., "columns": [...]}` record opens each table.
+- Each `{"_t": "row", "v": [...]}` record after it is one row, with values in column order.
+- UUID and JSONB values are wrapped in typed objects (`{"_vt": "uuid", ...}`, `{"_vt": "jsonb", ...}`) and unwrapped on read.
+
+The reader validates every line (record type, column count, typed values) and fails loudly on anything it doesn't recognise, including any `postgres_*` format other than `postgres_v1`. Settings stored in a row's `dynamic_part` JSONB column are flattened into the record. Renamed tables (`network_conf` to `networkconf`, `wlan_conf` to `wlanconf`, `user_client` to `user` and so on) and renamed fields (`passphrase` to `x_passphrase`, `network_group` to `networkgroup` and similar) are mapped back to the names the existing views expect, and legacy IDs are resolved through the `id_mapping` table. The original rows are kept as-is: the *All collections* tab and the "Source document" panels show exactly what was in the backup.
+
+PostgreSQL support was contributed by [phillipmcmahon](https://github.com/phillipmcmahon) and tested against UniFi Network 10.6.106 and 11.0.81 backups.
+
 After parsing, collections are mapped to the tabs you navigate: `wlanconf` and `setting` feed Wi-Fi, `networkconf` feeds Networks, `user` feeds DHCP reservations, `device` feeds Port Manager, `firewallrule`/`firewallgroup`/`portforward`/`routing`/`firewallzonepolicy`/etc. feed Firewall, `dpiapp`/`radiusprofile`/`schedule_task`/`dynamicdns`/`hotspotop`/etc. feed Services. Anything without a custom view still ships out via the full JSON export.
 
 ## Format details
@@ -126,6 +144,7 @@ After parsing, collections are mapped to the tabs you navigate: `wlanconf` and `
 - AES-128-CBC, NoPadding
 - Static key `bcyangkmluohmars` / IV `ubntenterpriseap` (publicly documented since 5.x, identical through 10.x)
 - Decrypted content is a standard ZIP containing `db.gz`, `db_stat.gz`, `version`, `format`, `timestamp`, `system.properties`
+- On PostgreSQL-based Network releases, `db-config.jsonl.gz` replaces `db.gz` and `format` reads `postgres_v1`
 
 ### `.unifi` (UniFi OS console backup)
 - AES-256-CBC, NoPadding
@@ -180,6 +199,10 @@ This tool stands on the shoulders of others.
 - [**zhangyoufu/unifi-backup-decrypt**](https://github.com/zhangyoufu/unifi-backup-decrypt) — the canonical Python decryptor for `.unf`. First to publicly document the static `.unf` key/IV pair.
 - [**Darknetzz/UniFi-Backup-Explorer**](https://github.com/Darknetzz/UniFi-Backup-Explorer) — the closest prior browser-based reader and a useful reference for the .unf flow.
 
+**Contributors**:
+
+- [**phillipmcmahon**](https://github.com/phillipmcmahon) wrote the PostgreSQL (`postgres_v1`) decoder and compatibility layer in the fork [phillipmcmahon/unifi-backup-reader](https://github.com/phillipmcmahon/unifi-backup-reader). The firewall export additions, the 2FA "not recorded" fix and the clearer load errors came with it. Thanks, Phillip.
+
 ## Privacy
 
 - The page makes **zero outbound requests** at runtime. JS libraries (fflate, aes-js) and webfonts (Outfit, Plus Jakarta Sans, JetBrains Mono) are all bundled directly into `index.html`. It works air-gapped.
@@ -190,6 +213,7 @@ This tool stands on the shoulders of others.
 
 - Floorplan images are routinely missing or broken in `.unf` backups (known Ubiquiti issue) — this tool surfaces what's there but cannot recover what UniFi didn't save.
 - The `.unifi` decryption key is static and embedded in UniFi OS firmware. If Ubiquiti rotates to a new format version (`_v3.unifi`), this tool will need a corresponding update.
+- PostgreSQL backups are read only in the `postgres_v1` layout. If Ubiquiti ships a `postgres_v2` or changes the JSONL structure, the reader stops with a clear error rather than guessing.
 - The tool is read-only. You cannot edit a backup and re-pack it. (This is intentional — repacking would require regenerating valid CRCs and keeping the archive byte-aligned, which is out of scope.)
 
 ## License
