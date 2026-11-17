@@ -1,0 +1,4 @@
+# Publish only the page, never the repo, docs or any test backups.
+# (_headers is read by Wrangler for response headers either way.)
+*
+!index.html

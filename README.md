@@ -20,7 +20,7 @@ Designed for the moment an engineer needs to recreate a config on a fresh contro
 - **Universal copy ergonomics** — click any field value to copy, every card has a "copy all" button, every tab has bulk-export buttons (TSV/JSON).
 - **Reveal-all toggle** — flip every masked secret in the current tab in one click.
 - **Full JSON export** — entire backup as pretty-printed JSON, plus per-collection JSON copy/download.
-- **Fully offline, zero outbound requests** — single HTML file (~490 KB) with fflate, aes-js, and all webfonts bundled in. Open it on a plane, on an air-gapped jump host, wherever. Nothing is fetched at runtime.
+- **Fully offline, zero outbound requests** — single HTML file (~550 KB) with fflate, aes-js, and all webfonts bundled in. Open it on a plane, on an air-gapped jump host, wherever. Nothing is fetched at runtime.
 - **No telemetry** — your backup is parsed entirely in your tab. Nothing is uploaded.
 
 ## Usage
